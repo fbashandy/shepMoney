@@ -6,6 +6,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
@@ -55,8 +57,8 @@ public class CreditCard {
     @CollectionTable(name = "balance_history", joinColumns = @JoinColumn(name = "credit_card_id"))
     @MapKeyColumn(name = "date")
     @Column(name = "balance")
-    //@OrderBy("date DESC")
-    private SortedMap<String, Integer> balanceHistory = new TreeMap<>();
+    @OrderBy("date DESC")
+    private List<BalanceHistory> balanceHistories = new ArrayList<>();
 
     // initialize credit card with bank and number
     public CreditCard(String issuanceBank, String number) {

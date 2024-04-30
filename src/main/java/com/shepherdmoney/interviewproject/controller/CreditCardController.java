@@ -118,31 +118,45 @@ public class CreditCardController {
         //      3. You propagate that +10 difference until today
         //      Return 200 OK if update is done and successful, 400 Bad Request if the given card number
         //        is not associated with a card.
-        List<CreditCard> allCreditCards = creditCardRepository.findAll(); // Retrieve all credit cards
-
         for (UpdateBalancePayload updatePayload : payload) {
-            // Find the credit card by number
-            Optional<CreditCard> creditCardOptional = allCreditCards.stream()
+            // find card
+            Optional<CreditCard> cardOptional = creditCardRepository.findAll().stream()
                     .filter(card -> card.getNumber().equals(updatePayload.getCreditCardNumber()))
                     .findFirst();
 
-            if (creditCardOptional.isPresent()) {
-                CreditCard creditCard = creditCardOptional.get();
-
-                // Get the balance history for the credit card
-                SortedMap<String, Integer> balanceHistory = creditCard.getBalanceHistory();
-
-                // Update balance history for the given date
-                balanceHistory.put(updatePayload.getBalanceDate().toString(), (int) updatePayload.getBalanceAmount());
-
-                // Save the updated credit card
-                creditCardRepository.save(creditCard);
-            } else {
+            if (!cardOptional.isPresent()) {
                 return ResponseEntity.badRequest().body("Credit card not found with number: " + updatePayload.getCreditCardNumber());
             }
+
+            CreditCard creditCard = cardOptional.get();
+            List<BalanceHistory> histories = creditCard.getBalanceHistories();
+
+            //  create one
+            LocalDate updateDate = updatePayload.getBalanceDate();
+            Optional<BalanceHistory> existingHistoryOpt = histories.stream()
+                    .filter(history -> history.getDate().isEqual(updateDate))
+                    .findFirst();
+
+            if (existingHistoryOpt.isPresent()) {
+                // update
+                BalanceHistory existingHistory = existingHistoryOpt.get();
+                existingHistory.setBalance(existingHistory.getBalance() + updatePayload.getBalanceAmount());
+            } else {
+                // copy
+                BalanceHistory newHistory = new BalanceHistory();
+                newHistory.setDate(updateDate);
+                newHistory.setBalance(updatePayload.getBalanceAmount());
+                newHistory.setCreditCard(creditCard);
+                histories.add(newHistory);
+                // order
+                histories.sort(Comparator.comparing(BalanceHistory::getDate).reversed());
+            }
+
+            // save
+            creditCardRepository.save(creditCard);
         }
 
-        return ResponseEntity.ok("Balance updated successfully.");
+        return ResponseEntity.ok("All balances updated successfully.");
     }
     
 }
