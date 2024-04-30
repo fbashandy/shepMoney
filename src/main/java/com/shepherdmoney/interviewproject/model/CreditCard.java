@@ -1,14 +1,13 @@
 package com.shepherdmoney.interviewproject.model;
 
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import java.util.SortedMap;
+import java.util.TreeMap;
 
 @Entity
 @Getter
@@ -27,6 +26,9 @@ public class CreditCard {
 
     // TODO: Credit card's owner. For detailed hint, please see User class
     // Some field here <> owner;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private User user; //user class
 
     // TODO: Credit card's balance history. It is a requirement that the dates in the balanceHistory 
     //       list must be in chronological order, with the most recent date appearing first in the list. 
@@ -49,4 +51,16 @@ public class CreditCard {
     //        4. Deletion of a balance should be fast
     //        5. It is possible that there are gaps in between dates (note the 04-13 and 04-16)
     //        6. In the condition that there are gaps, retrieval of "closest **previous**" balance date should also be fast. Aka, given 4-15, return 4-13 entry tuple
+    @ElementCollection(fetch = FetchType.LAZY)
+    @CollectionTable(name = "balance_history", joinColumns = @JoinColumn(name = "credit_card_id"))
+    @MapKeyColumn(name = "date")
+    @Column(name = "balance")
+    //@OrderBy("date DESC")
+    private SortedMap<String, Integer> balanceHistory = new TreeMap<>();
+
+    // initialize credit card with bank and number
+    public CreditCard(String issuanceBank, String number) {
+        this.issuanceBank = issuanceBank;
+        this.number = number;
+    }
 }
